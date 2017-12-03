@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title></title>
+        <link rel="stylesheet" href="styles/tomorrow.css">
+        <script src="highlight.pack.js"></script>
+        <script>hljs.initHighlightingOnLoad();</script>
+    </head>
+    <body>
+        <p>
+            <div>{{name}}</div>
+        </p>
+        <p>
+            <div>added</div>
+            <div>{{added}}</div>
+        </p>
+        <p>
+            <div>ns</div>
+            <div>{{ns}}</div>
+        </p>
+        <p>
+            <div>type</div>
+            <div>{{type}}</div>
+        </p>
+        <p>{{arglists}}</p>
+        <p>
+            <pre>{{doc}}</pre>
+        </p>
+        <div>
+            {% for example in examples %}
+            <pre>
+                <code class="clojure">{{example.body}}</code>
+            </pre>
+            {% endfor %}
+        </div>
+    </body>
+</html>
