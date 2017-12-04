@@ -104,7 +104,8 @@
                                     (extract :at-selector [:div.group :dt :a]
                                              :follow :href)
                                     (extract :at-selector []))
-                       :corpus-size 600
+                       :corpus-size 533
+                       :min-delay-ms 100
                        :job-dir tmp-dir})]
     (while (not (:stop? @(:state config)))
       (Thread/sleep 1000))
