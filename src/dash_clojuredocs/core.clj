@@ -17,7 +17,7 @@
 (def document-dir (str content-dir "Resources/Documents/"))
 (def tmp-dir "/tmp/clojuredocs/")
 
-(io/make-parents (str document-dir "/styles/tomorrow.css") )
+(io/make-parents (str document-dir "/styles/tomorrow.css"))
 (io/copy (io/file "resources/highlight.pack.js")
          (io/file (str document-dir "/highlight.pack.js")))
 
@@ -35,11 +35,11 @@
 
 (let [cs (jdbc/create-table-ddl :searchIndex
                                [[:id :integer
-                                :primary :key
-                                :autoincrement]
-                               [:name :text]
-                               [:type :text]
-                               [:path :text]])]
+                                 :primary :key
+                                 :autoincrement]
+                                [:name :text]
+                                [:type :text]
+                                [:path :text]])]
   (jdbc/execute! db [cs]))
 
 (defn example-template [example-data]
