@@ -9,7 +9,8 @@
             [clojure.java.jdbc :as jdbc]
             [clojure.java.io :as io]
             [selmer.parser :as parser]
-            [me.raynes.fs :as fs])
+            [me.raynes.fs :as fs]
+            [clojure.core.match :refer [match]])
   (:import [java.util.zip GZIPInputStream]))
 
 (def docset-dir "clojuredocs.docset")
@@ -72,17 +73,22 @@
                              (handle-var (:var source-map))))))
 
 (defn map-source [item]
-  (println "map source\n")
   (let [ret (get (re-find #"PAGE_DATA=\"(.*)\"" (:body item)) 1)
         source-map (read-string (-> ret
                                     (string/replace #"(?<!\\\\)\\\"" "\"")
                                     (string/replace #"\\\\\\\"" "\\\\\"")))
-        name (get-in source-map [:var :name])
+        item-name (get-in source-map [:var :name])
+        item-type (get-in source-map [:var :type])
+        file-name (string/replace item-name #"\?" "_qm")
         content (handle-examples source-map)]
-    (spit (str document-dir name ".html") content)
-    (jdbc/insert! db :searchIndex {:name (str name)
-                                   :type "Section"
-                                   :path (str name ".html")})))
+    (spit (str document-dir file-name ".html") content)
+    (jdbc/insert! db :searchIndex {:name item-name
+                                   :type (match item-type
+                                                "var" "Variable"
+                                                "function" "Function"
+                                                "macro" "Macro"
+                                                :else "Section")
+                                   :path (str file-name ".html")})))
 
 (defn handle-source
   []

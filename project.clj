@@ -10,7 +10,8 @@
                  [org.clojure/java.jdbc "0.7.3"]
                  [org.xerial/sqlite-jdbc "3.21.0"]
                  [selmer "1.11.3"]
-                 [me.raynes/fs "1.4.6"]]
+                 [me.raynes/fs "1.4.6"]
+                 [org.clojure/core.match "0.3.0-alpha5"]]
   :main ^:skip-aot dash-clojuredocs.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
