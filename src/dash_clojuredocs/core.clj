@@ -46,8 +46,9 @@
 (defn example-template [example-data]
   (parser/render-file "template.html" example-data))
 
-(defn handle-string [str]
-  (-> str
+(defn handle-string [origin-string]
+  (-> origin-string
+      str
       string/trim
       (string/replace #"\\n" "\r\n")))
 
@@ -74,21 +75,25 @@
 
 (defn map-source [item]
   (let [ret (get (re-find #"PAGE_DATA=\"(.*)\"" (:body item)) 1)
-        source-map (read-string (-> ret
-                                    (string/replace #"(?<!\\\\)\\\"" "\"")
-                                    (string/replace #"\\\\\\\"" "\\\\\"")))
+        source-map (-> ret
+                       (string/replace #"(?<!\\\\)\\\"" "\"")
+                       (string/replace #"\\\\\\\"" "\\\\\"")
+                       read-string)
         item-name (get-in source-map [:var :name])
         item-type (get-in source-map [:var :type])
         file-name (string/replace item-name #"\?" "_qm")
         content (handle-examples source-map)]
     (spit (str document-dir file-name ".html") content)
-    (jdbc/insert! db :searchIndex {:name item-name
-                                   :type (match item-type
-                                                "var" "Variable"
-                                                "function" "Function"
-                                                "macro" "Macro"
-                                                :else "Section")
-                                   :path (str file-name ".html")})))
+    (jdbc/insert!
+      db
+      :searchIndex
+      {:name item-name
+       :type (match item-type
+                    "var" "Variable"
+                    "function" "Function"
+                    "macro" "Macro"
+                    :else "Section")
+       :path (str file-name ".html")})))
 
 (defn handle-source
   []
@@ -104,13 +109,13 @@
 (defn crawl-clojuredocs
   []
   (fs/delete-dir tmp-dir)
-  (let [config (crawl {:seeds ["http://clojuredocs.org/quickref"]
+  (let [config (crawl {:seeds ["http://clojuredocs.org/core-library/vars"]
                        :user-agent "dash crawler"
                        :extractor (defextractors
-                                    (extract :at-selector [:div.group :dt :a]
-                                             :follow :href)
-                                    (extract :at-selector []))
-                       :corpus-size 533
+                                    (extract
+                                      :at-selector [:ul.var-list :a]
+                                      :follow :href))
+                       :corpus-size 1395
                        :min-delay-ms 100
                        :job-dir tmp-dir})]
     (while (not (:stop? @(:state config)))
