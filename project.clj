@@ -11,6 +11,8 @@
                  [org.xerial/sqlite-jdbc "3.21.0"]
                  [selmer "1.11.3"]
                  [me.raynes/fs "1.4.6"]
+                 [clj-http "3.7.0"]
+                 [clj-time "0.11.0"]
                  [org.clojure/core.match "0.3.0-alpha5"]]
   :main ^:skip-aot dash-clojuredocs.core
   :target-path "target/%s"

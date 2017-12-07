@@ -8,6 +8,9 @@
             [hickory.core :refer [parse as-hiccup]]
             [clojure.java.jdbc :as jdbc]
             [clojure.java.io :as io]
+            [clj-http.client :as client]
+            [clj-time.core :as t]
+            [clj-time.coerce :as c]
             [selmer.parser :as parser]
             [me.raynes.fs :as fs]
             [clojure.core.match :refer [match]])
@@ -106,6 +109,56 @@
       (doall
         (map map-source fns)))))
 
+(defn get-request
+  ([url user-agent]
+   (get-request url
+                user-agent
+                1000
+                1000))
+
+  ([url user-agent socket-timeout conn-timeout]
+   (client/get url {:socket-timeout socket-timeout
+                    :conn-timeout conn-timeout
+                    :headers {"User-Agent" user-agent}
+                    :insecure? true})))
+
+(defn request-with-retry [f retry-count & args]
+  (loop [retry-count retry-count
+         ret nil]
+    (cond
+      (or (not (nil? ret))
+          (zero? retry-count))
+      ret
+
+      :else
+      (recur (inc retry-count)
+             (try
+               (:body (apply get-request args))
+               (catch Exception e nil))))))
+
+(deftype CustomFrontierPipelineComponent []
+  PipelineComponentProtocol
+
+  (initialize
+    [this config]
+    config)
+
+  (run
+    [this url config]
+    {:url  url
+     :body (request-with-retry get-request
+                               5
+                               url
+                               (:user-agent config)
+                               (:socket-timeout config)
+                               (:conn-timeout config))
+     :time (-> (t/now)
+               c/to-long)})
+
+  (clean
+    [this config]
+    nil))
+
 (defn crawl-clojuredocs
   []
   (fs/delete-dir tmp-dir)
@@ -115,6 +168,7 @@
                                     (extract
                                       :at-selector [:ul.var-list :a]
                                       :follow :href))
+                       :frontier (->CustomFrontierPipelineComponent)
                        :corpus-size 1395
                        :min-delay-ms 100
                        :job-dir tmp-dir})]
