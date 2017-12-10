@@ -77,26 +77,26 @@
                              (handle-var (:var source-map))))))
 
 (defn map-source [item]
-  (let [ret (get (re-find #"PAGE_DATA=\"(.*)\"" (:body item)) 1)
-        source-map (-> ret
-                       (string/replace #"(?<!\\\\)\\\"" "\"")
-                       (string/replace #"\\\\\\\"" "\\\\\"")
-                       read-string)
-        item-name (get-in source-map [:var :name])
-        item-type (get-in source-map [:var :type])
-        file-name (string/replace item-name #"\?" "_qm")
-        content (handle-examples source-map)]
-    (spit (str document-dir file-name ".html") content)
-    (jdbc/insert!
-      db
-      :searchIndex
-      {:name item-name
-       :type (match item-type
-                    "var" "Variable"
-                    "function" "Function"
-                    "macro" "Macro"
-                    :else "Section")
-       :path (str file-name ".html")})))
+  (when-let [ret (get (re-find #"PAGE_DATA=\"(.*)\"" (:body item)) 1)]
+    (let [source-map (-> ret
+                         (string/replace #"(?<!\\\\)\\\"" "\"")
+                         (string/replace #"\\\\\\\"" "\\\\\"")
+                         read-string)
+          item-name (get-in source-map [:var :name])
+          item-type (get-in source-map [:var :type])
+          file-name (string/replace item-name #"\?" "_qm")
+          content (handle-examples source-map)]
+      (spit (str document-dir file-name ".html") content)
+      (jdbc/insert!
+        db
+        :searchIndex
+        {:name item-name
+         :type (match item-type
+                      "var" "Variable"
+                      "function" "Function"
+                      "macro" "Macro"
+                      :else "Section")
+         :path (str file-name ".html")}))))
 
 (defn handle-source
   []
@@ -121,20 +121,23 @@
                     :conn-timeout conn-timeout
                     :headers {"User-Agent" user-agent}
                     :insecure? true})))
-
 (defn request-with-retry [f retry-count & args]
   (loop [retry-count retry-count
-         ret nil]
+         ret ""]
     (cond
-      (or (not (nil? ret))
+      (or (not= "" ret)
           (zero? retry-count))
       ret
 
       :else
-      (recur (inc retry-count)
+      (recur (dec retry-count)
              (try
                (:body (apply get-request args))
-               (catch Exception e nil))))))
+               (catch Exception e
+                 (do
+                   (println "request exception"
+                            (first args) (.getMessage e))
+                   "")))))))
 
 (deftype CustomFrontierPipelineComponent []
   PipelineComponentProtocol
