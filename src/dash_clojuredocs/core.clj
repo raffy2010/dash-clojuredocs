@@ -61,12 +61,12 @@
 (defn gen-example-markup [example]
   (update example :body handle-string))
 
-(defn handle-var [var]
-  (-> var
+(defn handle-var [item-var]
+  (-> item-var
       (update :arglists (fn [value]
                           (->> value
                                (map #(surround-par
-                                       (str (:name var)
+                                       (str (:name item-var)
                                             (when (not= % "")
                                               (str " " %)))))
                                (string/join " "))))
@@ -87,9 +87,10 @@
           item-name (get-in item-map [:var :name])
           item-type (get-in item-map [:var :type])
           item-name-for-file (string/replace item-name #"\?" "_qm")
-          file-name (str item-ns "." item-name-for-file ".html")
+          file-name (str item-ns "/" item-name-for-file ".html")
           file-content (handle-content item-map)
           full-file-path (str document-dir file-name)]
+      (io/make-parents full-file-path)
       (spit full-file-path file-content)
       (jdbc/insert!
         db
