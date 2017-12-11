@@ -46,6 +46,9 @@
                                 [:path :text]])]
   (jdbc/execute! db [cs]))
 
+(defn surround-par [content]
+  (str "(" content ")"))
+
 (defn example-template [example-data]
   (parser/render-file "template.html" example-data))
 
@@ -61,53 +64,56 @@
 (defn handle-var [var]
   (-> var
       (update :arglists (fn [value]
-                          (string/join
-                            " "
-                            (map #(str "("
-                                       (:name var)
-                                       (when (not= % "")
-                                         (str " " %))
-                                       ")")
-                                 value))))
+                          (->> value
+                               (map #(surround-par
+                                       (str (:name var)
+                                            (when (not= % "")
+                                              (str " " %)))))
+                               (string/join " "))))
       (update :doc handle-string)))
 
-(defn handle-examples [source-map]
-  (let [examples (doall (map gen-example-markup (:examples source-map)))]
-    (example-template (merge {:examples examples}
-                             (handle-var (:var source-map))))))
+(defn handle-content [item-map]
+  (example-template (merge {:examples (map gen-example-markup
+                                           (:examples item-map))}
+                           (handle-var (:var item-map)))))
 
 (defn map-source [item]
   (when-let [ret (get (re-find #"PAGE_DATA=\"(.*)\"" (:body item)) 1)]
-    (let [source-map (-> ret
-                         (string/replace #"(?<!\\\\)\\\"" "\"")
-                         (string/replace #"\\\\\\\"" "\\\\\"")
-                         read-string)
-          item-name (get-in source-map [:var :name])
-          item-type (get-in source-map [:var :type])
-          file-name (string/replace item-name #"\?" "_qm")
-          content (handle-examples source-map)]
-      (spit (str document-dir file-name ".html") content)
+    (let [item-map (-> ret
+                       (string/replace #"(?<!\\\\)\\\"" "\"")
+                       (string/replace #"\\\\\\\"" "\\\\\"")
+                       read-string)
+          item-ns (get-in item-map [:var :ns])
+          item-name (get-in item-map [:var :name])
+          item-type (get-in item-map [:var :type])
+          item-name-for-file (string/replace item-name #"\?" "_qm")
+          file-name (str item-ns "." item-name-for-file ".html")
+          file-content (handle-content item-map)
+          full-file-path (str document-dir file-name)]
+      (spit full-file-path file-content)
       (jdbc/insert!
         db
         :searchIndex
-        {:name item-name
+        {:name (str item-ns "/" item-name)
          :type (match item-type
                       "var" "Variable"
                       "function" "Function"
                       "macro" "Macro"
                       :else "Section")
-         :path (str file-name ".html")}))))
+         :path file-name}))))
 
 (defn handle-source
   []
   (with-open [in (-> (str tmp-dir "corpus/corpus.clj.gz")
                      io/input-stream
                      java.util.zip.GZIPInputStream.)]
-    (let [source (slurp in)
-          ret (read-string (str "(" source ")"))
-          fns (rest ret)]
-      (doall
-        (map map-source fns)))))
+    (let [items (-> in
+                    slurp
+                    surround-par
+                    read-string
+                    rest)]
+      (doseq [item items]
+        (map-source item)))))
 
 (defn get-request
   ([url user-agent]
@@ -121,6 +127,7 @@
                     :conn-timeout conn-timeout
                     :headers {"User-Agent" user-agent}
                     :insecure? true})))
+
 (defn request-with-retry [f retry-count & args]
   (loop [retry-count retry-count
          ret ""]
