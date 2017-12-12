@@ -56,7 +56,7 @@
   (-> origin-string
       str
       string/trim
-      (string/replace #"\\n" "\r\n")))
+      (string/replace #"\\n[ ]*" "\r\n")))
 
 (defn gen-example-markup [example]
   (update example :body handle-string))
