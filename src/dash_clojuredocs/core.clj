@@ -56,7 +56,7 @@
   (-> origin-string
       str
       string/trim
-      (string/replace #"\\n[ ]*" "\r\n")))
+      (string/replace #"\\n" "\r\n")))
 
 (defn gen-example-markup [example]
   (update example :body handle-string))
@@ -70,7 +70,9 @@
                                             (when (not= % "")
                                               (str " " %)))))
                                (string/join " "))))
-      (update :doc handle-string)))
+      (update :doc #(-> %
+                        str
+                        (string/replace #"\\n[ ]*" "\r\n")))))
 
 (defn handle-content [item-map]
   (example-template (merge {:examples (map gen-example-markup

@@ -6,27 +6,34 @@
         <link rel="stylesheet" href="../styles/tomorrow.css">
         <script src="../highlight.pack.js"></script>
         <script>hljs.initHighlightingOnLoad();</script>
+        <style>
+          .info {
+            padding: 0 0.5em;
+          }
+        </style>
     </head>
     <body>
-        <p>
+        <div class="info">
+          <p>
             <div>{{name}}</div>
-        </p>
-        <p>
+          </p>
+          <p>
             <div>added</div>
             <div>{{added}}</div>
-        </p>
-        <p>
+          </p>
+          <p>
             <div>ns</div>
             <div>{{ns}}</div>
-        </p>
-        <p>
+          </p>
+          <p>
             <div>type</div>
             <div>{{type}}</div>
-        </p>
-        <p>{{arglists}}</p>
-        <p>
+          </p>
+          <p>{{arglists}}</p>
+          <p>
             <pre>{{doc}}</pre>
         </p>
+        </div>
         <div>
             {% for example in examples %}
             <pre>
