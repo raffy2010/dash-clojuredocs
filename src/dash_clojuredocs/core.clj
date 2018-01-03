@@ -79,6 +79,24 @@
                                            (:examples item-map))}
                            (handle-var (:var item-map)))))
 
+(defn gen-file-name [doc-dir item-ns item-name]
+  (loop [flag 0]
+    (let [file-flag (match flag
+                      0 ""
+                      :else (str "_" flag))
+          file-path (str
+                      item-ns
+                      "/"
+                      item-name
+                      file-flag
+                      ".html")
+          full-path (str doc-dir file-path)]
+      (if-not (-> full-path
+                  io/as-file
+                  .exists)
+        [file-path full-path]
+        (recur (inc flag))))))
+
 (defn map-source [item]
   (when-let [ret (get (re-find #"PAGE_DATA=\"(.*)\"" (:body item)) 1)]
     (let [item-map (-> ret
@@ -89,9 +107,11 @@
           item-name (get-in item-map [:var :name])
           item-type (get-in item-map [:var :type])
           item-name-for-file (string/replace item-name #"\?" "_qm")
-          file-name (str item-ns "/" item-name-for-file ".html")
           file-content (handle-content item-map)
-          full-file-path (str document-dir file-name)]
+          [file-name full-file-path] (gen-file-name
+                                       document-dir
+                                       item-ns
+                                       item-name-for-file)]
       (io/make-parents full-file-path)
       (spit full-file-path file-content)
       (jdbc/insert!
