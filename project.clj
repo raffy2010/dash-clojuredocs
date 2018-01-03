@@ -1,4 +1,4 @@
-(defproject dash-clojuredocs "0.1.0"
+(defproject dash-clojuredocs "0.2.0"
   :description "Tool for generating ClojureDocs docset for Dash"
   :url "https://github.com/raffy2010/dash-clojuredocs"
   :license {:name "MIT"}
